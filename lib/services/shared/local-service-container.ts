@@ -22,11 +22,6 @@ import { isSupabaseConfigured } from "@/lib/database/supabase";
 import { SupabaseConversationRepository } from "@/lib/repositories/supabase/conversation-repository";
 import { SupabaseDocumentRepository } from "@/lib/repositories/supabase/document-repository";
 import { SupabaseSettingsRepository } from "@/lib/repositories/supabase/settings-repository";
-import { SupabaseDocumentVersionRepository } from "@/lib/repositories/supabase/document-version-repository";
-import { SupabaseChunkRepository } from "@/lib/repositories/supabase/chunk-repository";
-import { SupabaseSourceRepositoryPlaceholder } from "@/lib/repositories/supabase/source-repository";
-import { SupabaseReviewRepository } from "@/lib/repositories/supabase/review-repository";
-import { SupabaseMonitoringRunRepository } from "@/lib/repositories/supabase/monitoring-run-repository";
 import { LocalAnswerService } from "@/lib/services/answer-service";
 import { LocalDocumentIngestionService } from "@/lib/services/document-ingestion-service";
 import { LocalChatService } from "@/lib/services/local/local-chat-service";
@@ -45,21 +40,12 @@ export function createLocalContainer(root?: string) {
   const documentRepository = useSupabase
     ? new SupabaseDocumentRepository()
     : new LocalDocumentRepository(root);
-  const documentVersionRepository = useSupabase
-    ? new SupabaseDocumentVersionRepository()
-    : new LocalDocumentVersionRepository(root);
-  const chunkRepository = useSupabase
-    ? new SupabaseChunkRepository()
-    : new LocalChunkRepository(root);
-  const sourceRepository = useSupabase
-    ? new SupabaseSourceRepositoryPlaceholder()
-    : new LocalSourceRepository(root);
-  const reviewRepository = useSupabase
-    ? new SupabaseReviewRepository()
-    : new LocalReviewRepository(root);
-  const monitoringRunRepository = useSupabase
-    ? new SupabaseMonitoringRunRepository()
-    : new LocalMonitoringRunRepository(root);
+  // Use local for now until Supabase repos are fully implemented
+  const documentVersionRepository = new LocalDocumentVersionRepository(root);
+  const chunkRepository = new LocalChunkRepository(root);
+  const sourceRepository = new LocalSourceRepository(root);
+  const reviewRepository = new LocalReviewRepository(root);
+  const monitoringRunRepository = new LocalMonitoringRunRepository(root);
   const conversationRepository = useSupabase
     ? new SupabaseConversationRepository()
     : new LocalConversationRepository(root);

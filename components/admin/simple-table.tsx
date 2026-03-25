@@ -20,36 +20,36 @@ export function SimpleTable<T extends { id: string }>({
 }) {
   return (
     <SectionCard title={title} description={description}>
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 text-slate-500">
-              {columns.map((column) => (
-                <th key={column.header} className="px-3 py-3 font-medium">
-                  {column.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className="border-b border-slate-100 align-top last:border-b-0">
-                {columns.map((column) => (
-                  <td key={column.header} className="px-3 py-4 text-slate-700">
-                    {column.render(row)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
       {!rows.length ? (
-        <div className="mt-4">
+        <div className="py-2">
           <Badge tone="warning">No records</Badge>
         </div>
-      ) : null}
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-[color:var(--line)]">
+          <table className="min-w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-[color:var(--line)] bg-[color:var(--background)]">
+                {columns.map((col) => (
+                  <th key={col.header} className="px-4 py-2.5 text-xs font-semibold text-[color:var(--muted)]">
+                    {col.header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className="border-b border-[color:var(--line)] align-top last:border-b-0 hover:bg-[color:var(--background)] transition-colors">
+                  {columns.map((col) => (
+                    <td key={col.header} className="px-4 py-3 text-[color:var(--foreground)]">
+                      {col.render(row)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </SectionCard>
   );
 }
-

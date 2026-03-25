@@ -82,6 +82,44 @@ describe("ChatWorkspace", () => {
           return new Response(JSON.stringify(initialThreads), { status: 200 });
         }
 
+        if (url === "/api/documents" && method === "GET") {
+          return new Response(JSON.stringify([]), { status: 200 });
+        }
+
+        if (url === "/api/sources" && method === "GET") {
+          return new Response(JSON.stringify([]), { status: 200 });
+        }
+
+        if (url === "/api/settings" && method === "GET") {
+          return new Response(
+            JSON.stringify({
+              settings: {
+                defaultJurisdiction: "PT",
+                defaultLanguage: "pt-PT",
+                mockMode: true,
+                providerRouting: [],
+                reviewThreshold: 0.7,
+                createdAt: "2026-03-25T08:00:00.000Z",
+                updatedAt: "2026-03-25T08:00:00.000Z",
+              },
+              environment: {
+                localMode: true,
+                supabaseConfigured: false,
+                providers: {
+                  nvidia: false,
+                  mistral: false,
+                  compatible: false,
+                },
+                features: {
+                  translation: true,
+                  ocr: true,
+                },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
         if (url === "/api/chat" && method === "POST") {
           return new Response(JSON.stringify({ threadId: "thread-1" }), { status: 200 });
         }
@@ -109,7 +147,7 @@ describe("ChatWorkspace", () => {
     const input = screen.getByLabelText("Ask a question");
     expect(input).toHaveValue("What should HR verify before ending a probationary contract in Portugal?");
 
-    await user.click(screen.getByRole("button", { name: /Ask assistant/i }));
+    await user.click(screen.getByRole("button", { name: /Send/i }));
 
     expect(await screen.findByText(/Development fallback: approved evidence says HR should verify probation length/i)).toBeInTheDocument();
     expect(screen.getByText(/Employment Code, Probation, p. 2/i)).toBeInTheDocument();

@@ -38,5 +38,10 @@ export class LocalDocumentRepository implements DocumentRepository {
     await writeJsonFile(this.filePath, documents);
     return record;
   }
+
+  async delete(id: string) {
+    const documents = await this.list();
+    await writeJsonFile(this.filePath, documents.filter((d) => d.id !== id));
+  }
 }
 

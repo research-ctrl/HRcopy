@@ -5,6 +5,7 @@ export interface LlmGenerationInput {
   question: string;
   retrievedChunks: RetrievedChunk[];
   systemPrompt: string;
+  preferredProvider?: string;
 }
 
 export interface LlmGenerationResult {

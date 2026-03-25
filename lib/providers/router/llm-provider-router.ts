@@ -11,7 +11,13 @@ export class LlmProviderRouter {
   constructor(private readonly providers: LlmProvider[]) {}
 
   async generate(input: LlmGenerationInput): Promise<LlmGenerationResult> {
-    const orderedProviders = getProviderOrder()
+    // If a preferred provider is specified, move it to the front
+    let order = getProviderOrder();
+    if (input.preferredProvider) {
+      order = [input.preferredProvider, ...order.filter((p) => p !== input.preferredProvider)];
+    }
+
+    const orderedProviders = order
       .map((family) => this.providers.find((provider) => provider.family === family))
       .filter((provider): provider is LlmProvider => Boolean(provider));
 

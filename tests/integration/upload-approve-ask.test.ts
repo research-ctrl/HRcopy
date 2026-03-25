@@ -82,7 +82,31 @@ describe("local backend integration", () => {
     });
 
     expect(answer.citations.length).toBeGreaterThan(0);
-    expect(answer.message.content).toContain("Development fallback");
+    expect(answer.message.content).toContain("Modo local");
     expect(answer.qc.status).not.toBe("fail");
+  });
+
+  it("supports image upload through the OCR path", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "hr-legal-assistant-"));
+    roots.push(root);
+
+    const container = createLocalContainer(root);
+    container.providers.ocrProvider.extract = async () => ({
+      text: "Gestor deve guardar prova documental antes da revisao final.",
+      method: "ocr-fallback",
+    });
+
+    const ingestion = await container.services.documentIngestionService.ingestUpload({
+      fileName: "disciplinary-note.png",
+      contentType: "image/png",
+      bytes: Buffer.from("fake-image"),
+      title: "Disciplinary note",
+      category: "case-note",
+      tags: ["ocr", "disciplinary"],
+    });
+
+    expect(ingestion.version.extractionMethod).toBe("ocr-fallback");
+    expect(ingestion.document.mimeType).toBe("image/png");
+    expect(ingestion.document.summary).toContain("Gestor deve guardar prova documental");
   });
 });

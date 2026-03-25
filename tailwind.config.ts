@@ -20,7 +20,7 @@ const config: Config = {
         danger: "#c83f49",
       },
       boxShadow: {
-        panel: "0 20px 45px -25px rgba(15, 23, 42, 0.35)",
+        panel: "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)",
       },
       backgroundImage: {
         "soft-grid":

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/Users/Myron/Documents/'HR app')",
+      "Bash(ls \"C:\\\\Users\\\\Myron\\\\Documents\\\\HR app\\\\app\\\\admin\\\\documents\"\" 2>/dev/null && echo \"exists\" || echo \"missing \")",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)"
+    ]
+  }
+}

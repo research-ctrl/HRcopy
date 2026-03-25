@@ -26,9 +26,7 @@ export function RunsManager() {
     setLoading(false);
   }
 
-  useEffect(() => {
-    void loadData();
-  }, []);
+  useEffect(() => { void loadData(); }, []);
 
   async function triggerRun() {
     setRunning(true);
@@ -38,39 +36,35 @@ export function RunsManager() {
   }
 
   return (
-    <div className="space-y-6">
-      <SectionCard title="Monitor runs" description="Run and inspect daily source monitoring locally.">
-        <div className="mb-5 flex justify-end">
+    <div className="space-y-5">
+      <SectionCard title="Monitor runs" description="Run and inspect local source monitoring.">
+        <div className="mb-4 flex justify-end">
           <Button onClick={() => void triggerRun()} disabled={running}>
-            {running ? "Running..." : "Run monitor now"}
+            {running ? "Running…" : "Run now"}
           </Button>
         </div>
+
         {loading ? (
           <LoadingState label="Loading runs" />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-[color:var(--line)]">
             <table className="min-w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="px-3 py-3 font-medium">Run</th>
-                  <th className="px-3 py-3 font-medium">Status</th>
-                  <th className="px-3 py-3 font-medium">Sources</th>
-                  <th className="px-3 py-3 font-medium">Changes</th>
-                  <th className="px-3 py-3 font-medium">Started</th>
-                  <th className="px-3 py-3 font-medium">Summary</th>
+                <tr className="border-b border-[color:var(--line)] bg-[color:var(--background)]">
+                  {["Run", "Status", "Sources", "Changes", "Started", "Summary"].map((h) => (
+                    <th key={h} className="px-4 py-2.5 text-xs font-semibold text-[color:var(--muted)]">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {runs.map((run) => (
-                  <tr key={run.id} className="border-b border-slate-100 align-top">
-                    <td className="px-3 py-4 font-medium text-slate-900">{run.id}</td>
-                    <td className="px-3 py-4">
-                      <StatusBadge value={run.status} />
-                    </td>
-                    <td className="px-3 py-4 text-slate-700">{run.sourcesChecked}</td>
-                    <td className="px-3 py-4 text-slate-700">{run.changesDetected}</td>
-                    <td className="px-3 py-4 text-slate-700">{formatDate(run.startedAt)}</td>
-                    <td className="px-3 py-4 text-slate-600">{run.notes}</td>
+                  <tr key={run.id} className="border-b border-[color:var(--line)] align-top last:border-b-0 hover:bg-[color:var(--background)] transition-colors">
+                    <td className="px-4 py-3 font-medium text-[color:var(--foreground)]">{run.id}</td>
+                    <td className="px-4 py-3"><StatusBadge value={run.status} /></td>
+                    <td className="px-4 py-3 text-[color:var(--foreground)]">{run.sourcesChecked}</td>
+                    <td className="px-4 py-3 text-[color:var(--foreground)]">{run.changesDetected}</td>
+                    <td className="px-4 py-3 text-[color:var(--muted)]">{formatDate(run.startedAt)}</td>
+                    <td className="px-4 py-3 text-[color:var(--muted)]">{run.notes}</td>
                   </tr>
                 ))}
               </tbody>
@@ -79,17 +73,17 @@ export function RunsManager() {
         )}
       </SectionCard>
 
-      <SectionCard title="Latest digest" description="Summarized change events from the latest run.">
+      <SectionCard title="Latest digest" description="Highlights from the most recent run.">
         {!digest ? (
           <LoadingState label="Loading digest" />
         ) : (
-          <div className="space-y-3">
-            <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-600">
-              Generated {formatDate(digest.generatedAt)} • {digest.totalChanges} changes • escalated {digest.escalatedSources.length}
+          <div className="space-y-2">
+            <div className="rounded-xl bg-[color:var(--background)] border border-[color:var(--line)] px-4 py-3 text-sm text-[color:var(--muted)]">
+              Generated {formatDate(digest.generatedAt)} · {digest.totalChanges} changes · {digest.escalatedSources.length} escalated
             </div>
-            {digest.highlights.map((highlight) => (
-              <div key={highlight} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-700">
-                {highlight}
+            {digest.highlights.map((h) => (
+              <div key={h} className="rounded-xl border border-[color:var(--line)] bg-white px-4 py-3 text-sm text-[color:var(--foreground)]">
+                {h}
               </div>
             ))}
           </div>
@@ -98,4 +92,3 @@ export function RunsManager() {
     </div>
   );
 }
-

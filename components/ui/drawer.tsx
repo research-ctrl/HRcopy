@@ -1,5 +1,6 @@
 "use client";
 
+import { AppIcon } from "@/components/ui/app-icon";
 import { cn } from "@/lib/utils";
 
 export function Drawer({
@@ -15,28 +16,33 @@ export function Drawer({
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  if (!open) {
-    return null;
-  }
+  if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/20">
       <button aria-label="Close drawer" className="absolute inset-0 cursor-default" onClick={onClose} />
-      <aside className={cn("relative h-full w-full max-w-xl overflow-y-auto bg-[var(--background)] p-6 shadow-2xl")}>
-        <div className="panel min-h-full p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
-              {description ? <p className="mt-2 text-sm text-slate-600">{description}</p> : null}
-            </div>
-            <button className="rounded-2xl px-3 py-2 text-sm text-slate-500 hover:bg-slate-100" onClick={onClose}>
-              Close
-            </button>
+      <aside className={cn("relative flex h-full w-full max-w-xl flex-col bg-white shadow-xl")}>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 border-b border-[color:var(--line)] px-5 py-4">
+          <div>
+            <h2 className="text-base font-semibold text-[color:var(--foreground)]">{title}</h2>
+            {description ? (
+              <p className="mt-0.5 text-sm text-[color:var(--muted)]">{description}</p>
+            ) : null}
           </div>
-          <div className="mt-6">{children}</div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[color:var(--muted)] hover:bg-[color:var(--background)] transition-colors"
+          >
+            <AppIcon name="x" className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          {children}
         </div>
       </aside>
     </div>
   );
 }
-

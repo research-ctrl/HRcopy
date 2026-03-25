@@ -33,6 +33,11 @@ export class LocalConversationRepository implements ConversationRepository {
     return thread;
   }
 
+  async deleteThread(id: string) {
+    const threads = await this.listThreads();
+    await writeJsonFile(this.filePath, threads.filter((t) => t.id !== id));
+  }
+
   async createThread(title: string, initialMessage: ChatMessage) {
     const thread: ChatThread = {
       id: createId("thread"),

@@ -4,4 +4,5 @@ export interface ChunkRepository {
   list(): Promise<DocumentChunkRecord[]>;
   listByDocumentId(documentId: string): Promise<DocumentChunkRecord[]>;
   replaceForVersion(versionId: string, chunks: DocumentChunkRecord[]): Promise<void>;
+  deleteByDocumentId(documentId: string): Promise<void>;
 }

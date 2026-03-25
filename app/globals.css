@@ -2,34 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ─────────────────────────────────────────── */
 :root {
   color-scheme: light;
-  --background: #f3f6fb;
-  --foreground: #111827;
-  --panel: rgba(255, 255, 255, 0.86);
-  --line: rgba(148, 163, 184, 0.22);
-  --muted: #5b6472;
-  --brand: #123e63;
-  --brand-soft: #dfeef7;
-  --accent: #b0893a;
+
+  /* Backgrounds */
+  --background: #f0f2f5;
+  --background-strong: #e3e8ec;
+
+  /* Text */
+  --foreground: #111b21;
+  --muted: #667781;
+
+  /* Surfaces */
+  --panel: #ffffff;
+  --line: rgba(0, 0, 0, 0.08);
+
+  /* Brand */
+  --brand: #0f5d56;
+  --brand-strong: #083f3a;
+  --brand-soft: #e7f3f1;
+
+  /* Accent */
+  --accent: #d9824f;
+
+  /* Chat */
+  --chat-wash: #efeae2;
+
+  /* Spacing rhythm */
+  --space-section: 1.75rem;
+  --space-card: 1.5rem;
+  --radius-card: 1rem;
+  --radius-inner: 0.75rem;
 }
 
-* {
+/* ── Reset ──────────────────────────────────────────────────── */
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
+html, body {
+  height: 100%;
 }
 
 body {
   margin: 0;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(18, 62, 99, 0.12), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(176, 137, 58, 0.12), transparent 25%),
-    var(--background);
+  background-color: var(--background);
   color: var(--foreground);
+  /* Premium readable font stack */
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
 }
 
 a {
@@ -38,17 +65,92 @@ a {
 }
 
 ::selection {
-  background: rgba(18, 62, 99, 0.18);
+  background: rgba(15, 93, 86, 0.15);
 }
 
+/* ── Scrollbars ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.13); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.22); }
+
+/* ── Component classes ──────────────────────────────────────── */
 @layer components {
+
+  /* Clean white surface card */
   .panel {
-    @apply rounded-3xl border border-white/70 bg-white/80 shadow-panel backdrop-blur;
+    @apply rounded-2xl border bg-white;
+    border-color: var(--line);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
 
-  .subtle-grid {
-    background-image: theme("backgroundImage.soft-grid");
-    background-size: 28px 28px;
+  /* Back-compat: plain white */
+  .frosted { @apply bg-white; }
+
+  /* WhatsApp-style chat background */
+  .chat-canvas { background-color: var(--chat-wash); }
+
+  .soft-divider { border-color: var(--line); }
+
+  /* ── Admin section card ──────────────────────────────── */
+  .section-card {
+    @apply rounded-2xl border bg-white;
+    border-color: var(--line);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    padding: var(--space-card);
   }
+
+  /* ── Legal prose — used inside assistant chat bubbles ── */
+  /*
+   * Renders long-form markdown-style legal answers with comfortable
+   * spacing, clear hierarchy, and good readability.
+   */
+  .prose-legal {
+    font-size: 0.9375rem;   /* 15px */
+    line-height: 1.7;
+    color: var(--foreground);
+  }
+  .prose-legal h1,
+  .prose-legal h2,
+  .prose-legal h3 {
+    font-weight: 600;
+    line-height: 1.35;
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+    color: var(--foreground);
+  }
+  .prose-legal h1 { font-size: 1.1rem; }
+  .prose-legal h2 { font-size: 1rem; }
+  .prose-legal h3 { font-size: 0.9375rem; }
+  .prose-legal p  { margin-top: 0; margin-bottom: 0.85em; }
+  .prose-legal p:last-child { margin-bottom: 0; }
+  .prose-legal ul,
+  .prose-legal ol {
+    margin: 0.65em 0;
+    padding-left: 1.4em;
+  }
+  .prose-legal li { margin-bottom: 0.35em; }
+  .prose-legal strong { font-weight: 600; }
+  .prose-legal em { font-style: italic; }
+  .prose-legal code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.875em;
+    background: rgba(0,0,0,0.05);
+    padding: 0.15em 0.35em;
+    border-radius: 0.25rem;
+  }
+  .prose-legal hr {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 1em 0;
+  }
+  .prose-legal blockquote {
+    border-left: 3px solid var(--brand-soft);
+    padding-left: 0.85em;
+    margin: 0.75em 0;
+    color: var(--muted);
+    font-style: italic;
+  }
+  /* Remove top margin from first child */
+  .prose-legal > *:first-child { margin-top: 0; }
 }
-

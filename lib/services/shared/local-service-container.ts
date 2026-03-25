@@ -6,6 +6,8 @@ import { LocalLlmProvider } from "@/lib/providers/local/local-llm-provider";
 import { LocalOcrProvider } from "@/lib/providers/local/local-ocr-provider";
 import { LocalPdfExtractor } from "@/lib/providers/local/local-pdf-extractor";
 import { LocalStorageProvider } from "@/lib/providers/local/local-storage-provider";
+import { SupabaseStorageProvider } from "@/lib/providers/supabase/supabase-storage-provider";
+import { LocalTranslationProvider } from "@/lib/providers/local/local-translation-provider";
 import { EmbeddingProviderRouter } from "@/lib/providers/router/embedding-provider-router";
 import { LlmProviderRouter } from "@/lib/providers/router/llm-provider-router";
 import { LocalChunkRepository } from "@/lib/repositories/local/local-chunk-repository";
@@ -16,6 +18,10 @@ import { LocalMonitoringRunRepository } from "@/lib/repositories/local/local-mon
 import { LocalReviewRepository } from "@/lib/repositories/local/local-review-repository";
 import { LocalSettingsRepository } from "@/lib/repositories/local/local-settings-repository";
 import { LocalSourceRepository } from "@/lib/repositories/local/local-source-repository";
+import { isSupabaseConfigured } from "@/lib/database/supabase";
+import { SupabaseConversationRepository } from "@/lib/repositories/supabase/conversation-repository";
+import { SupabaseDocumentRepository } from "@/lib/repositories/supabase/document-repository";
+import { SupabaseSettingsRepository } from "@/lib/repositories/supabase/settings-repository";
 import { LocalAnswerService } from "@/lib/services/answer-service";
 import { LocalDocumentIngestionService } from "@/lib/services/document-ingestion-service";
 import { LocalChatService } from "@/lib/services/local/local-chat-service";
@@ -26,16 +32,25 @@ import { LocalSourceGovernanceService } from "@/lib/services/local/local-source-
 import { LocalMonitorService } from "@/lib/services/monitor-service";
 import { LocalQcService } from "@/lib/services/qc-service";
 import { LocalRetrievalService } from "@/lib/services/retrieval-service";
+import { LocalTranslationService } from "@/lib/services/translation-service";
 
 export function createLocalContainer(root?: string) {
-  const documentRepository = new LocalDocumentRepository(root);
+  const useSupabase = isSupabaseConfigured();
+
+  const documentRepository = useSupabase
+    ? new SupabaseDocumentRepository()
+    : new LocalDocumentRepository(root);
   const documentVersionRepository = new LocalDocumentVersionRepository(root);
   const chunkRepository = new LocalChunkRepository(root);
   const sourceRepository = new LocalSourceRepository(root);
   const reviewRepository = new LocalReviewRepository(root);
   const monitoringRunRepository = new LocalMonitoringRunRepository(root);
-  const conversationRepository = new LocalConversationRepository(root);
-  const settingsRepository = new LocalSettingsRepository(root);
+  const conversationRepository = useSupabase
+    ? new SupabaseConversationRepository()
+    : new LocalConversationRepository(root);
+  const settingsRepository = useSupabase
+    ? new SupabaseSettingsRepository()
+    : new LocalSettingsRepository(root);
 
   const localLlmProvider = new LocalLlmProvider();
   const localEmbeddingsProvider = new LocalEmbeddingsProvider();
@@ -45,9 +60,10 @@ export function createLocalContainer(root?: string) {
   const mistralEmbeddingsProvider = new MistralEmbeddingsProvider();
   const compatibleGenerationProvider = new CompatibleGenerationProvider();
   const compatibleEmbeddingsProvider = new CompatibleEmbeddingsProvider();
-  const storageProvider = new LocalStorageProvider(root);
+  const storageProvider = useSupabase ? new SupabaseStorageProvider() : new LocalStorageProvider(root);
   const pdfExtractor = new LocalPdfExtractor();
   const ocrProvider = new LocalOcrProvider();
+  const translationProvider = new LocalTranslationProvider();
 
   const llmRouter = new LlmProviderRouter([
     mistralGenerationProvider,
@@ -119,6 +135,7 @@ export function createLocalContainer(root?: string) {
       storageProvider,
       pdfExtractor,
       ocrProvider,
+      translationProvider,
     },
     services: {
       documentIngestionService,
@@ -130,6 +147,7 @@ export function createLocalContainer(root?: string) {
       documentService: new LocalDocumentService(documentRepository, documentIngestionService),
       sourceGovernanceService: new LocalSourceGovernanceService(sourceRepository),
       monitoringService: new LocalMonitoringService(monitorService),
+      translationService: new LocalTranslationService(translationProvider),
       dashboardService: new LocalDashboardService(
         settingsRepository,
         documentRepository,

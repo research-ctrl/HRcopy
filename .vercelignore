@@ -1,0 +1,13 @@
+.git
+.gitignore
+README.md
+docs
+tests
+coverage
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+*.tsbuildinfo
+vitest.config.ts
+jest.config.js

@@ -5,4 +5,5 @@ export interface DocumentRepository {
   getById(id: string): Promise<DocumentRecord | null>;
   create(record: DocumentRecord): Promise<DocumentRecord>;
   update(record: DocumentRecord): Promise<DocumentRecord>;
+  delete(id: string): Promise<void>;
 }

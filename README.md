@@ -95,3 +95,80 @@ docs/                   Architecture, data model, ingestion, governance, migrati
 - [Source governance](./docs/source-governance.md)
 - [Supabase migration plan](./docs/supabase-migration-plan.md)
 - [Codex handoff](./docs/codex-handoff.md)
+
+## Production Deployment (Vercel)
+
+### Prerequisites
+- Supabase project with:
+  - Database schema initialized (see `supabase-schema.sql`)
+  - Storage bucket `documents` created with RLS policies
+  - Following environment variables:
+    - `SUPABASE_URL`
+    - `SUPABASE_SERVICE_ROLE_KEY`
+    - `SUPABASE_ANON_KEY` (optional)
+
+- At least one LLM provider configured:
+  - **Mistral AI**: Set `MISTRAL_API_KEY`
+  - **NVIDIA NIM**: Set `NVIDIA_API_KEY`
+  - **OpenAI-compatible**: Set `COMPATIBLE_API_KEY` and `COMPATIBLE_API_BASE_URL`
+
+### Environment Variables
+Set these on Vercel project settings → Environment Variables:
+
+```env
+# Application
+NEXT_PUBLIC_APP_NAME=HR Legal Assistant
+APP_ENV=production
+MOCK_MODE=false
+
+# Supabase (Required)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+SUPABASE_ANON_KEY=eyJ...
+
+# LLM & Embeddings (pick at least one)
+MISTRAL_API_KEY=your-key
+NVIDIA_API_KEY=your-key
+COMPATIBLE_API_KEY=your-key
+COMPATIBLE_API_BASE_URL=https://...
+
+# Defaults
+DEFAULT_LOCALE=pt-PT
+DEFAULT_JURISDICTION=PT
+LLM_PROVIDER_ORDER=mistral,nvidia,compatible,local
+EMBEDDING_PROVIDER_ORDER=nvidia,mistral,compatible,local
+```
+
+### Deploy to Vercel
+
+1. **Push to GitHub:**
+   ```bash
+   git add .
+   git commit -m "Production ready for Vercel deployment"
+   git push origin main
+   ```
+
+2. **Import to Vercel:**
+   - Visit [vercel.com/new](https://vercel.com/new)
+   - Connect your GitHub account and select the repository
+   - Hit "Import"
+
+3. **Configure Environment:**
+   - Under "Environment Variables", paste all required variables from above
+   - Click "Deploy"
+
+4. **Verify Health:**
+   ```bash
+   curl https://your-vercel-url.vercel.app/api/health
+   ```
+
+### Storage Architecture
+- PDFs upload to `documents` bucket in Supabase Storage
+- Extracted text stored as `documents/{documentId}/v{versionNumber}.txt`
+- Metadata persisted in Supabase database
+- All retrieval reads from Supabase (no local file system)
+
+### Cron Jobs
+Vercel Cron is pre-configured in `vercel.json`:
+- **Daily source sync** at 7 AM UTC: `/api/cron/sync`
+- Requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`

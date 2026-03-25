@@ -62,6 +62,8 @@ export interface ChatRequest {
   question: string;
   threadId?: ID;
   topK?: number;
+  language?: "en-GB" | "pt-PT";
+  preferredProvider?: "mistral" | "nvidia" | "compatible" | "local";
 }
 
 export interface FeedbackRecord extends AuditFields {

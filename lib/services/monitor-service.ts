@@ -5,19 +5,38 @@ import type { SourceRepository } from "@/lib/repositories/interfaces/source-repo
 import type { MonitorService } from "@/lib/services/interfaces/monitor-service";
 import { createId, sha256 } from "@/lib/utils/id";
 
-function simulateFingerprint(source: SourceRecord, dayKey: string) {
-  return sha256(`${source.id}:${source.url}:${dayKey}`).slice(0, 16);
-}
+/**
+ * Attempt a real HTTP HEAD request to detect content changes.
+ * Uses ETag and Last-Modified headers where available.
+ * Falls back to a content-length comparison if headers are absent.
+ * Returns a fingerprint string suitable for comparison.
+ */
+async function fetchFingerprint(url: string): Promise<{ fingerprint: string; reachable: boolean }> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
-function severityForFingerprint(fingerprint: string) {
-  const numeric = Number.parseInt(fingerprint.slice(0, 2), 16);
-  if (numeric % 7 === 0) {
-    return "major" as const;
+    const res = await fetch(url, {
+      method: "HEAD",
+      signal: controller.signal,
+      headers: { "User-Agent": "HR-Legal-Assistant/1.0 (+compliance-monitor)" },
+      redirect: "follow",
+    });
+
+    clearTimeout(timeout);
+
+    // Build fingerprint from headers that indicate content change
+    const etag          = res.headers.get("etag")          ?? "";
+    const lastModified  = res.headers.get("last-modified") ?? "";
+    const contentLength = res.headers.get("content-length") ?? "";
+    const status        = String(res.status);
+
+    const raw = `${status}:${etag}:${lastModified}:${contentLength}`;
+    return { fingerprint: sha256(raw).slice(0, 16), reachable: res.ok };
+  } catch {
+    // Network error, timeout, or CORS block — treat as "unchanged" to avoid false positives
+    return { fingerprint: "", reachable: false };
   }
-  if (numeric % 3 === 0) {
-    return "minor" as const;
-  }
-  return null;
 }
 
 export class LocalMonitorService implements MonitorService {
@@ -32,9 +51,9 @@ export class LocalMonitorService implements MonitorService {
 
   async runNow(mode: "manual" | "scheduled" = "manual") {
     const startedAt = new Date().toISOString();
-    const dayKey = startedAt.slice(0, 10);
+
     const activeSources = (await this.sourceRepository.list()).filter(
-      (source) => source.allowlisted && source.approvalStatus === "approved" && source.status === "active",
+      (s) => s.allowlisted && s.approvalStatus === "approved" && s.status === "active",
     );
 
     const run: MonitoringRun = {
@@ -45,7 +64,7 @@ export class LocalMonitorService implements MonitorService {
       sourcesChecked: activeSources.length,
       changesDetected: 0,
       changeEventIds: [],
-      notes: "Monitoring run in progress.",
+      notes: "Source scan in progress…",
       createdAt: startedAt,
       updatedAt: startedAt,
     };
@@ -56,52 +75,60 @@ export class LocalMonitorService implements MonitorService {
     const updatedSources: SourceRecord[] = [];
 
     for (const source of activeSources) {
-      const fingerprint = simulateFingerprint(source, dayKey);
-      const severity = severityForFingerprint(fingerprint);
+      const { fingerprint, reachable } = await fetchFingerprint(source.url);
       const checkedAt = new Date().toISOString();
+
+      // If unreachable, skip change detection for this source
+      if (!reachable) {
+        updatedSources.push({
+          ...source,
+          lastCheckedAt: checkedAt,
+          nextCheckAt: nextCheckTime(source.refreshFrequency),
+          updatedAt: checkedAt,
+        });
+        continue;
+      }
+
+      // Detect change: compare new fingerprint to stored hash
+      const previousHash = source.lastContentHash ?? "";
+      const changed = previousHash !== "" && previousHash !== fingerprint;
+      const severity = changed ? detectSeverity(source, fingerprint, previousHash) : null;
 
       updatedSources.push({
         ...source,
         lastCheckedAt: checkedAt,
-        nextCheckAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        lastContentHash: fingerprint,
-        changeSeverity: severity ?? "none",
+        nextCheckAt: nextCheckTime(source.refreshFrequency),
+        lastContentHash: fingerprint || previousHash, // keep old hash if fetch gave empty
+        changeSeverity: severity ?? (previousHash === "" ? "none" : source.changeSeverity ?? "none"),
         updatedAt: checkedAt,
       });
 
-      if (!severity) {
-        continue;
+      if (changed && severity) {
+        const event: SourceChangeEvent = {
+          id: createId("evt"),
+          runId: run.id,
+          sourceId: source.id,
+          severity,
+          fingerprint,
+          summary: `${source.name}: ${severity} content change detected (headers changed since last check).`,
+          detectedAt: checkedAt,
+          createdAt: checkedAt,
+          updatedAt: checkedAt,
+        };
+        events.push(event);
       }
-
-      const event: SourceChangeEvent = {
-        id: createId("evt"),
-        runId: run.id,
-        sourceId: source.id,
-        severity,
-        fingerprint,
-        summary: `${source.name} produced a simulated ${severity} content change during the daily monitor run.`,
-        detectedAt: checkedAt,
-        createdAt: checkedAt,
-        updatedAt: checkedAt,
-      };
-
-      events.push(event);
     }
 
-    await Promise.all(updatedSources.map((source) => this.sourceRepository.update(source)));
-    if (events.length) {
-      await this.monitoringRepository.saveEvents(events);
-    }
+    await Promise.all(updatedSources.map((s) => this.sourceRepository.update(s)));
+    if (events.length) await this.monitoringRepository.saveEvents(events);
 
     const completedRun: MonitoringRun = {
       ...run,
       status: "completed",
       endedAt: new Date().toISOString(),
       changesDetected: events.length,
-      changeEventIds: events.map((event) => event.id),
-      notes: events.length
-        ? `Completed with ${events.length} simulated change event(s).`
-        : "Completed with no detected changes.",
+      changeEventIds: events.map((e) => e.id),
+      notes: buildRunNotes(activeSources.length, events),
       updatedAt: new Date().toISOString(),
     };
 
@@ -111,12 +138,12 @@ export class LocalMonitorService implements MonitorService {
       runId: completedRun.id,
       generatedAt: completedRun.updatedAt,
       highlights: events.length
-        ? events.map((event) => event.summary)
-        : ["No changes were detected across active allowlisted sources in this run."],
+        ? events.map((e) => e.summary)
+        : ["No content changes detected across active sources in this run."],
       totalChanges: events.length,
       escalatedSources: events
-        .filter((event) => event.severity === "major")
-        .map((event) => activeSources.find((source) => source.id === event.sourceId)?.name ?? event.sourceId),
+        .filter((e) => e.severity === "major")
+        .map((e) => activeSources.find((s) => s.id === e.sourceId)?.name ?? e.sourceId),
     };
 
     await this.monitoringRepository.saveDigest(digest);
@@ -126,4 +153,35 @@ export class LocalMonitorService implements MonitorService {
   async getDigest() {
     return this.monitoringRepository.getDigest();
   }
+}
+
+/** Very simple severity heuristic based on fingerprint entropy change */
+function detectSeverity(
+  _source: SourceRecord,
+  newHash: string,
+  _oldHash: string,
+): "minor" | "major" {
+  // If the first nibble of the hash changed significantly (high-entropy diff), treat as major
+  const diff = parseInt(newHash.slice(0, 2), 16) ^ parseInt(_oldHash.slice(0, 2), 16);
+  return diff > 64 ? "major" : "minor";
+}
+
+function nextCheckTime(frequency: SourceRecord["refreshFrequency"]): string {
+  const ms =
+    frequency === "daily"  ? 24 * 60 * 60 * 1000 :
+    frequency === "weekly" ? 7 * 24 * 60 * 60 * 1000 :
+    7 * 24 * 60 * 60 * 1000; // manual → check weekly anyway
+  return new Date(Date.now() + ms).toISOString();
+}
+
+function buildRunNotes(sourcesChecked: number, events: SourceChangeEvent[]): string {
+  if (!events.length) return `Checked ${sourcesChecked} source(s). No changes detected.`;
+  const major = events.filter((e) => e.severity === "major").length;
+  const minor = events.filter((e) => e.severity === "minor").length;
+  const parts = [
+    `Checked ${sourcesChecked} source(s).`,
+    major ? `${major} major change(s) detected.` : null,
+    minor ? `${minor} minor change(s) detected.` : null,
+  ].filter(Boolean);
+  return parts.join(" ");
 }

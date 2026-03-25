@@ -22,10 +22,10 @@ export class LocalLlmProvider implements LlmProvider {
     if (!evidence.length) {
       return {
         content:
-          "Development fallback: no approved local materials were retrieved for this question. Do not rely on this response for legal action without adding approved documents or active allowlisted sources.",
+          "Modo local: nao foram encontrados materiais aprovados para responder com seguranca. Nao use esta resposta para decisao juridica sem adicionar documentos aprovados ou fontes autorizadas.",
         provider: this.family,
         mode: "development" as const,
-        notice: "No external provider keys were used. No approved retrieval evidence was available.",
+        notice: "Nao foram usadas chaves externas e nao existia evidencia aprovada suficiente para fundamentar a resposta.",
       };
     }
 
@@ -35,12 +35,11 @@ export class LocalLlmProvider implements LlmProvider {
 
     return {
       content:
-        `Development fallback: external provider keys are missing or unavailable. Based only on approved retrieved material, ${summary}. ` +
-        "This answer is for local development and should still be reviewed before operational use.",
+        `Modo local: com base apenas no material aprovado recuperado, ${summary}. ` +
+        "Esta resposta continua a precisar de revisao humana antes de uso operacional.",
       provider: this.family,
       mode: "development" as const,
-      notice: "External providers were unavailable, so a safe local development answer was generated from retrieved chunks only.",
+      notice: "Os fornecedores externos nao estavam disponiveis, por isso foi gerada uma resposta local baseada apenas nos excertos aprovados.",
     };
   }
 }
-

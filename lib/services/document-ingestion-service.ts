@@ -1,4 +1,3 @@
-import path from "node:path";
 import type { DocumentApprovalStatus } from "@/lib/domain/enums/status";
 import type { DocumentChunkRecord, DocumentIngestionResult, DocumentRecord, DocumentVersionRecord } from "@/lib/domain/models/document";
 import type { EmbeddingProviderRouter } from "@/lib/providers/router/embedding-provider-router";
@@ -13,7 +12,11 @@ import type { DocumentIngestionService, UploadDocumentInput } from "@/lib/servic
 import { createId, sha256 } from "@/lib/utils/id";
 
 function titleFromFileName(fileName: string) {
-  return fileName.replace(/\.pdf$/i, "").replace(/[-_]+/g, " ").trim();
+  return fileName.replace(/\.(pdf|png|jpe?g|webp)$/i, "").replace(/[-_]+/g, " ").trim();
+}
+
+function isImageUpload(contentType: string) {
+  return ["image/png", "image/jpeg", "image/webp"].includes(contentType);
 }
 
 export class LocalDocumentIngestionService implements DocumentIngestionService {
@@ -26,6 +29,43 @@ export class LocalDocumentIngestionService implements DocumentIngestionService {
     private readonly ocrProvider: OcrProvider,
     private readonly embeddingRouter: EmbeddingProviderRouter,
   ) {}
+
+  private async extractContent(bytes: Buffer, fileName: string, contentType: string) {
+    if (isImageUpload(contentType)) {
+      if (!this.ocrProvider.isConfigured()) {
+        throw new Error("OCR is not configured for image uploads.");
+      }
+
+      const ocr = await this.ocrProvider.extract(bytes, fileName);
+      return {
+        text: ocr.text,
+        pages: [ocr.text],
+        method: ocr.method,
+        notice: "Image OCR was used to extract text from the uploaded file.",
+      };
+    }
+
+    try {
+      const extracted = await this.pdfExtractor.extract(bytes, fileName);
+      return {
+        text: extracted.text,
+        pages: extracted.pages,
+        method: extracted.method,
+      };
+    } catch (error) {
+      if (!this.ocrProvider.isConfigured()) {
+        throw error;
+      }
+
+      const ocr = await this.ocrProvider.extract(bytes, fileName);
+      return {
+        text: ocr.text,
+        pages: [ocr.text],
+        method: ocr.method,
+        notice: "PDF extraction failed, OCR fallback was used.",
+      };
+    }
+  }
 
   private async persistIngestion(
     document: DocumentRecord,
@@ -129,44 +169,31 @@ export class LocalDocumentIngestionService implements DocumentIngestionService {
       updatedAt: now,
     };
 
-    let extractionNotice: string | undefined;
-    let extractedText = "";
-    let pages: string[] = [];
-    let extractionMethod: DocumentVersionRecord["extractionMethod"] = "pdf-text";
-
     try {
-      const extracted = await this.pdfExtractor.extract(input.bytes, input.fileName);
-      extractedText = extracted.text;
-      pages = extracted.pages;
-    } catch (error) {
-      if (this.ocrProvider.isConfigured()) {
-        const ocr = await this.ocrProvider.extract(input.bytes, input.fileName);
-        extractedText = ocr.text;
-        pages = [ocr.text];
-        extractionMethod = ocr.method;
-        extractionNotice = "PDF extraction failed, OCR fallback was used.";
-      } else {
-        extractionNotice = `PDF extraction failed and OCR fallback is not wired: ${error instanceof Error ? error.message : "unknown error"}`;
-        await this.documentRepository.update({
-          ...document,
-          processingStatus: "failed",
-          summary: extractionNotice,
-          updatedAt: new Date().toISOString(),
-        });
-        throw new Error(extractionNotice);
-      }
-    }
+      const extraction = await this.extractContent(input.bytes, input.fileName, input.contentType);
 
-    return this.persistIngestion(
-      document,
-      {
-        ...version,
-        extractionMethod,
-      },
-      extractedText,
-      pages,
-      extractionNotice,
-    );
+      return this.persistIngestion(
+        document,
+        {
+          ...version,
+          extractionMethod: extraction.method,
+        },
+        extraction.text,
+        extraction.pages,
+        extraction.notice,
+      );
+    } catch (error) {
+      const extractionNotice = `${isImageUpload(input.contentType) ? "Image OCR failed" : "PDF extraction failed"}: ${
+        error instanceof Error ? error.message : "unknown error"
+      }`;
+      await this.documentRepository.update({
+        ...document,
+        processingStatus: "failed",
+        summary: extractionNotice,
+        updatedAt: new Date().toISOString(),
+      });
+      throw new Error(extractionNotice);
+    }
   }
 
   async approveDocument(documentId: string, actorName: string) {
@@ -216,8 +243,8 @@ export class LocalDocumentIngestionService implements DocumentIngestionService {
     const existingVersion = await this.versionRepository.getLatestByDocumentId(documentId);
     const versionNumber = (existingVersion?.versionNumber ?? 0) + 1;
     const bytes = await this.storageProvider.readObject(document.storagePath);
-    const extracted = await this.pdfExtractor.extract(bytes, document.fileName);
     const now = new Date().toISOString();
+    const extraction = await this.extractContent(bytes, document.fileName, document.mimeType);
 
     const version: DocumentVersionRecord = {
       id: createId("ver"),
@@ -227,12 +254,12 @@ export class LocalDocumentIngestionService implements DocumentIngestionService {
       fileHash: sha256(bytes),
       textLength: 0,
       pageCount: 0,
-      extractionMethod: extracted.method,
+      extractionMethod: extraction.method,
       status: "stored",
       createdAt: now,
       updatedAt: now,
     };
 
-    return this.persistIngestion(document, version, extracted.text, extracted.pages);
+    return this.persistIngestion(document, version, extraction.text, extraction.pages, extraction.notice);
   }
 }

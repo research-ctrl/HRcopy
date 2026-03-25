@@ -29,5 +29,10 @@ export class LocalDocumentVersionRepository implements DocumentVersionRepository
     await writeJsonFile(this.filePath, versions);
     return record;
   }
+
+  async deleteByDocumentId(documentId: string) {
+    const versions = await readJsonFile<DocumentVersionRecord[]>(this.filePath, seedVersions);
+    await writeJsonFile(this.filePath, versions.filter((v) => v.documentId !== documentId));
+  }
 }
 

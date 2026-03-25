@@ -5,4 +5,5 @@ export interface ConversationRepository {
   getThreadById(id: string): Promise<ChatThread | null>;
   saveThread(thread: ChatThread): Promise<ChatThread>;
   createThread(title: string, initialMessage: ChatMessage): Promise<ChatThread>;
+  deleteThread(id: string): Promise<void>;
 }

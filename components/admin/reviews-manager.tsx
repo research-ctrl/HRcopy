@@ -23,7 +23,6 @@ export function ReviewsManager() {
         apiRequest<ReviewQueueItem[]>("/api/reviews"),
         apiRequest<DocumentRecord[]>("/api/documents"),
       ]);
-
       if (!cancelled) {
         setReviews(reviewsData);
         setDocuments(documentsData);
@@ -32,59 +31,59 @@ export function ReviewsManager() {
     }
 
     void loadData();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  const pendingDocuments = documents.filter((document) => document.approvalStatus !== "approved");
+  const pendingDocuments = documents.filter((d) => d.approvalStatus !== "approved");
 
   return (
-    <div className="grid gap-6 xl:grid-cols-2">
-      <SectionCard title="Pending document approvals" description="Documents excluded from retrieval until approved.">
+    <div className="grid gap-5 xl:grid-cols-2">
+      <SectionCard title="Pending documents" description="Not yet eligible for retrieval.">
         {loading ? (
           <LoadingState label="Loading approvals" />
         ) : !pendingDocuments.length ? (
-          <EmptyState title="No pending documents" description="All local documents are currently approved for retrieval." />
+          <EmptyState title="No pending documents" description="All current documents are approved." />
         ) : (
-          <div className="space-y-3">
-            {pendingDocuments.map((document) => (
-              <article key={document.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <div className="space-y-2">
+            {pendingDocuments.map((doc) => (
+              <article key={doc.id} className="rounded-xl border border-[color:var(--line)] bg-[color:var(--background)] px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-slate-900">{document.title}</p>
-                    <p className="mt-1 text-sm text-slate-600">{document.fileName}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-[color:var(--foreground)] truncate">{doc.title}</p>
+                    <p className="mt-0.5 text-xs text-[color:var(--muted)] truncate">{doc.fileName}</p>
                   </div>
-                  <StatusBadge value={document.approvalStatus} />
+                  <StatusBadge value={doc.approvalStatus} />
                 </div>
-                <p className="mt-3 text-sm text-slate-500">Chunks: {document.chunkCount} • Updated {formatDate(document.updatedAt)}</p>
+                <p className="mt-2 text-xs text-[color:var(--muted)]">
+                  {doc.chunkCount} chunks · Updated {formatDate(doc.updatedAt)}
+                </p>
               </article>
             ))}
           </div>
         )}
       </SectionCard>
 
-      <SectionCard title="QC-flagged answers" description="Answers escalated because their grounded support was not strong enough.">
+      <SectionCard title="QC escalations" description="Answers that need a human review.">
         {loading ? (
           <LoadingState label="Loading review queue" />
         ) : !reviews.length ? (
-          <EmptyState title="No flagged answers" description="QC escalations will appear here when answer grounding drops below the review threshold." />
+          <EmptyState title="No flagged answers" description="QC escalations appear here when grounding drops below the threshold." />
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {reviews.map((review) => (
-              <article key={review.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+              <article key={review.id} className="rounded-xl border border-[color:var(--line)] bg-[color:var(--background)] px-4 py-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-slate-900">{review.question}</p>
-                    <p className="mt-2 text-sm text-slate-600">{review.answerPreview}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-[color:var(--foreground)] line-clamp-2">{review.question}</p>
+                    <p className="mt-1 text-xs text-[color:var(--muted)] line-clamp-2">{review.answerPreview}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     <StatusBadge value={review.verdict} />
                     <StatusBadge value={review.priority} />
                   </div>
                 </div>
-                <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-500">
-                  Escalation reasons: {review.issueTags.join(", ")} • updated {formatDate(review.updatedAt)}
+                <p className="mt-2 text-[11px] text-[color:var(--muted)]">
+                  Tags: {review.issueTags.join(", ")} · {formatDate(review.updatedAt)}
                 </p>
               </article>
             ))}
@@ -94,4 +93,3 @@ export function ReviewsManager() {
     </div>
   );
 }
-

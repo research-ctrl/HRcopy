@@ -29,7 +29,21 @@ export async function POST(request: Request) {
     question: body.question,
     threadId: body.threadId,
     topK: body.topK,
+    language: body.language,
+    preferredProvider: body.preferredProvider,
   });
 
   return NextResponse.json(answer, { status: 200 });
+}
+
+export async function DELETE(request: Request) {
+  const url = new URL(request.url);
+  const threadId = url.searchParams.get("threadId");
+
+  if (!threadId) {
+    return NextResponse.json({ error: "threadId is required" }, { status: 400 });
+  }
+
+  await localContainer.repositories.conversationRepository.deleteThread(threadId);
+  return NextResponse.json({ ok: true });
 }

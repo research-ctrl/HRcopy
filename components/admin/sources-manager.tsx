@@ -42,16 +42,14 @@ export function SourcesManager() {
     try {
       const data = await apiRequest<SourceRecord[]>("/api/sources");
       setSources(data);
-    } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to load sources.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load sources.");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    void loadSources();
-  }, []);
+  useEffect(() => { void loadSources(); }, []);
 
   function startEdit(source: SourceRecord) {
     setEditingId(source.id);
@@ -75,25 +73,17 @@ export function SourcesManager() {
     event.preventDefault();
     setSaving(true);
     setError(undefined);
-
     try {
       if (editingId) {
-        await apiRequest(`/api/sources/${editingId}`, {
-          method: "PATCH",
-          body: JSON.stringify(form),
-        });
+        await apiRequest(`/api/sources/${editingId}`, { method: "PATCH", body: JSON.stringify(form) });
       } else {
-        await apiRequest("/api/sources", {
-          method: "POST",
-          body: JSON.stringify(form),
-        });
+        await apiRequest("/api/sources", { method: "POST", body: JSON.stringify(form) });
       }
-
       setForm(emptyForm());
       setEditingId(undefined);
       await loadSources();
-    } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to save source.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save source.");
     } finally {
       setSaving(false);
     }
@@ -102,101 +92,92 @@ export function SourcesManager() {
   async function toggleActive(source: SourceRecord) {
     await apiRequest(`/api/sources/${source.id}`, {
       method: "PATCH",
-      body: JSON.stringify({
-        status: source.status === "active" ? "inactive" : "active",
-      }),
+      body: JSON.stringify({ status: source.status === "active" ? "inactive" : "active" }),
     });
     await loadSources();
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
-      <SectionCard title={editingId ? "Edit source" : "Create source"} description="Manage approved-source governance, parser metadata, and refresh posture.">
+    <div className="grid gap-5 xl:grid-cols-[1fr_1.4fr]">
+      <SectionCard
+        title={editingId ? "Edit source" : "Create source"}
+        description="Capture only the sources you want the assistant to trust."
+      >
         <form className="space-y-4" onSubmit={saveSource}>
           <Field label="Source name">
-            <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="ACT Guidance Portal" />
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="ACT Guidance Portal" />
           </Field>
           <Field label="Base URL">
-            <Input value={form.url} onChange={(event) => setForm({ ...form, url: event.target.value })} placeholder="https://portal.act.gov.pt" />
+            <Input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://portal.act.gov.pt" />
           </Field>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Field label="Source type">
-              <Select value={form.sourceType} onChange={(event) => setForm({ ...form, sourceType: event.target.value as SourceRecord["sourceType"] })}>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Type">
+              <Select value={form.sourceType} onChange={(e) => setForm({ ...form, sourceType: e.target.value as SourceRecord["sourceType"] })}>
                 <option value="web">Web</option>
               </Select>
             </Field>
-            <Field label="Parser type">
-              <Select value={form.parserType} onChange={(event) => setForm({ ...form, parserType: event.target.value as SourceRecord["parserType"] })}>
+            <Field label="Parser">
+              <Select value={form.parserType} onChange={(e) => setForm({ ...form, parserType: e.target.value as SourceRecord["parserType"] })}>
                 <option value="html">HTML</option>
                 <option value="rss">RSS</option>
                 <option value="sitemap">Sitemap</option>
                 <option value="manual">Manual</option>
               </Select>
             </Field>
-            <Field label="Refresh frequency">
-              <Select
-                value={form.refreshFrequency}
-                onChange={(event) => setForm({ ...form, refreshFrequency: event.target.value as SourceRecord["refreshFrequency"] })}
-              >
+            <Field label="Refresh">
+              <Select value={form.refreshFrequency} onChange={(e) => setForm({ ...form, refreshFrequency: e.target.value as SourceRecord["refreshFrequency"] })}>
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
                 <option value="manual">Manual</option>
               </Select>
             </Field>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
+
+          <div className="grid gap-3 sm:grid-cols-3">
             <Field label="Priority">
-              <Select value={String(form.priority)} onChange={(event) => setForm({ ...form, priority: Number(event.target.value) as SourceRecord["priority"] })}>
-                {[1, 2, 3, 4, 5].map((priority) => (
-                  <option key={priority} value={priority}>
-                    {priority}
-                  </option>
-                ))}
+              <Select value={String(form.priority)} onChange={(e) => setForm({ ...form, priority: Number(e.target.value) as SourceRecord["priority"] })}>
+                {[1, 2, 3, 4, 5].map((p) => <option key={p} value={p}>{p}</option>)}
               </Select>
             </Field>
             <Field label="Status">
-              <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as SourceRecord["status"] })}>
+              <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as SourceRecord["status"] })}>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
                 <option value="draft">Draft</option>
               </Select>
             </Field>
             <Field label="Approval">
-              <Select
-                value={form.approvalStatus}
-                onChange={(event) => setForm({ ...form, approvalStatus: event.target.value as SourceRecord["approvalStatus"] })}
-              >
+              <Select value={form.approvalStatus} onChange={(e) => setForm({ ...form, approvalStatus: e.target.value as SourceRecord["approvalStatus"] })}>
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
               </Select>
             </Field>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={Boolean(form.allowlisted)}
-                onChange={(event) => setForm({ ...form, allowlisted: event.target.checked })}
-              />
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="flex items-center gap-3 rounded-xl border border-[color:var(--line)] bg-[color:var(--background)] px-4 py-3 text-sm text-[color:var(--foreground)] cursor-pointer">
+              <input type="checkbox" checked={Boolean(form.allowlisted)} onChange={(e) => setForm({ ...form, allowlisted: e.target.checked })} />
               Allowlisted for retrieval
             </label>
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.digestEnabled}
-                onChange={(event) => setForm({ ...form, digestEnabled: event.target.checked })}
-              />
+            <label className="flex items-center gap-3 rounded-xl border border-[color:var(--line)] bg-[color:var(--background)] px-4 py-3 text-sm text-[color:var(--foreground)] cursor-pointer">
+              <input type="checkbox" checked={form.digestEnabled} onChange={(e) => setForm({ ...form, digestEnabled: e.target.checked })} />
               Include in digest runs
             </label>
           </div>
-          <Field label="Governance notes">
-            <Textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Why this source is approved, what to watch, and any caveats." />
+
+          <Field label="Notes">
+            <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Why this source belongs in the governed corpus." />
           </Field>
-          {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-          <div className="flex flex-wrap gap-3">
+
+          {error ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+          ) : null}
+
+          <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={saving}>
-              {saving ? "Saving..." : editingId ? "Save changes" : "Create source"}
+              {saving ? "Saving…" : editingId ? "Save changes" : "Create source"}
             </Button>
             {editingId ? (
               <Button type="button" variant="secondary" onClick={() => { setEditingId(undefined); setForm(emptyForm()); }}>
@@ -207,7 +188,7 @@ export function SourcesManager() {
         </form>
       </SectionCard>
 
-      <SectionCard title="Allowlisted domains" description="Only approved, active, allowlisted sources are eligible for retrieval.">
+      <SectionCard title="Governed sources" description="Only approved and allowlisted sources are eligible for retrieval.">
         {loading ? (
           <LoadingState label="Loading sources" />
         ) : !sources.length ? (
@@ -215,34 +196,36 @@ export function SourcesManager() {
         ) : (
           <div className="space-y-3">
             {sources.map((source) => (
-              <article key={source.id} className="rounded-3xl border border-slate-200 bg-white px-5 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
+              <article key={source.id} className="rounded-xl border border-[color:var(--line)] bg-[color:var(--background)] p-4 transition hover:bg-white">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-slate-900">{source.name}</p>
+                      <p className="text-sm font-semibold text-[color:var(--foreground)]">{source.name}</p>
                       <StatusBadge value={source.status} />
                       <StatusBadge value={source.approvalStatus} />
                     </div>
-                    <p className="mt-2 text-sm text-slate-600">{source.url}</p>
-                    <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-500">
-                      {source.sourceType} • {source.parserType} parser • {source.refreshFrequency} refresh • priority {source.priority}
+                    <p className="mt-1 text-xs text-[color:var(--muted)] truncate">{source.url}</p>
+                    <p className="mt-1 text-[11px] text-[color:var(--muted)]">
+                      {source.sourceType} · {source.parserType} · {source.refreshFrequency} · priority {source.priority}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => startEdit(source)}>
-                      Edit
-                    </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => startEdit(source)}>Edit</Button>
                     <Button size="sm" variant="ghost" onClick={() => void toggleActive(source)}>
                       {source.status === "active" ? "Deactivate" : "Activate"}
                     </Button>
                   </div>
                 </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    Retrieval eligibility: {source.allowlisted && source.status === "active" && source.approvalStatus === "approved" ? "Eligible" : "Blocked"}
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-lg bg-white border border-[color:var(--line)] px-3 py-2 text-xs text-[color:var(--muted)]">
+                    Retrieval:{" "}
+                    <span className={source.allowlisted && source.status === "active" && source.approvalStatus === "approved" ? "text-emerald-600 font-medium" : ""}>
+                      {source.allowlisted && source.status === "active" && source.approvalStatus === "approved" ? "Eligible" : "Blocked"}
+                    </span>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    Governance hint: approve and allowlist only stable official sources.
+                  <div className="rounded-lg bg-white border border-[color:var(--line)] px-3 py-2 text-xs text-[color:var(--muted)]">
+                    Keep only stable official sources in the allowlist.
                   </div>
                 </div>
               </article>

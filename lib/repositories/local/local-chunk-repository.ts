@@ -25,4 +25,9 @@ export class LocalChunkRepository implements ChunkRepository {
     const next = current.filter((chunk) => chunk.versionId !== versionId);
     await writeJsonFile(this.filePath, [...chunks, ...next]);
   }
+
+  async deleteByDocumentId(documentId: string) {
+    const current = await this.list();
+    await writeJsonFile(this.filePath, current.filter((c) => c.documentId !== documentId));
+  }
 }

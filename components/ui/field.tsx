@@ -8,11 +8,10 @@ export function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block space-y-2">
-      <span className="text-sm font-medium text-slate-800">{label}</span>
+    <label className="block space-y-1.5">
+      <span className="text-sm font-medium text-[color:var(--foreground)]">{label}</span>
       {children}
-      {hint ? <span className="block text-xs text-slate-500">{hint}</span> : null}
+      {hint ? <span className="block text-xs text-[color:var(--muted)]">{hint}</span> : null}
     </label>
   );
 }
-

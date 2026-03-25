@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { localContainer } from "@/lib/services/shared/local-service-container";
 
+const supportedContentTypes = ["application/pdf", "image/png", "image/jpeg", "image/webp"] as const;
+
+function isSupportedUpload(contentType: string) {
+  return supportedContentTypes.includes(contentType as (typeof supportedContentTypes)[number]);
+}
+
 export async function POST(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";
 
@@ -19,8 +25,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "file is required" }, { status: 400 });
     }
 
-    if (file.type !== "application/pdf") {
-      return NextResponse.json({ error: "only PDF uploads are supported" }, { status: 400 });
+    if (!isSupportedUpload(file.type)) {
+      return NextResponse.json({ error: "supported uploads are PDF, PNG, JPG, and WebP" }, { status: 400 });
     }
 
     if (!category) {
@@ -46,20 +52,25 @@ export async function POST(request: Request) {
     category?: "employment-code" | "policy" | "contract-template" | "case-note";
     tags?: string[];
     effectiveDate?: string;
-    base64Pdf?: string;
+    base64File?: string;
+    contentType?: string;
   };
 
-  if (!body.fileName || !body.category || !body.base64Pdf) {
+  if (!body.fileName || !body.category || !body.base64File || !body.contentType) {
     return NextResponse.json(
-      { error: "multipart/form-data with file or JSON with fileName, category and base64Pdf is required" },
+      { error: "multipart/form-data with file or JSON with fileName, category, contentType, and base64File is required" },
       { status: 400 },
     );
   }
 
+  if (!isSupportedUpload(body.contentType)) {
+    return NextResponse.json({ error: "supported uploads are PDF, PNG, JPG, and WebP" }, { status: 400 });
+  }
+
   const result = await localContainer.services.documentIngestionService.ingestUpload({
     fileName: body.fileName,
-    contentType: "application/pdf",
-    bytes: Buffer.from(body.base64Pdf, "base64"),
+    contentType: body.contentType,
+    bytes: Buffer.from(body.base64File, "base64"),
     title: body.title,
     category: body.category,
     tags: body.tags ?? [],

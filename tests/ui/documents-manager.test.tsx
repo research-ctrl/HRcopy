@@ -82,10 +82,10 @@ describe("DocumentsManager", () => {
     expect(await screen.findByText("Leave Policy")).toBeInTheDocument();
 
     const file = new File(["pdf-data"], "uploaded.pdf", { type: "application/pdf" });
-    await user.upload(screen.getByLabelText(/Drop a PDF here or click to browse/i), file);
-    await user.click(screen.getByRole("button", { name: /Upload and process/i }));
+    await user.upload(screen.getByLabelText(/Drop a PDF or image here/i), file);
+    await user.click(screen.getByRole("button", { name: /Upload/i }));
 
-    expect(await screen.findByText(/Uploaded and processed Uploaded policy/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Uploaded Uploaded policy/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(

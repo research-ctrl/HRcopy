@@ -18,10 +18,16 @@ export class LocalAnswerService implements AnswerService {
     private readonly reviewRepository: ReviewRepository,
   ) {}
 
-  private buildSystemPrompt() {
+  private buildSystemPrompt(language: "en-GB" | "pt-PT" = "pt-PT") {
+    const langInstruction =
+      language === "en-GB"
+        ? "Always respond in English."
+        : "Always respond in European Portuguese (pt-PT).";
+
     return [
       "You are an internal HR legal assistant for Portuguese workforce guidance.",
       "Use only retrieved approved material.",
+      langInstruction,
       "Be cautious, explicit about uncertainty, and avoid unsupported claims.",
       "Do not invent legal citations.",
     ].join(" ");
@@ -62,7 +68,8 @@ export class LocalAnswerService implements AnswerService {
     const generation = await this.llmRouter.generate({
       question: request.question,
       retrievedChunks: retrieved,
-      systemPrompt: this.buildSystemPrompt(),
+      systemPrompt: this.buildSystemPrompt(request.language),
+      preferredProvider: request.preferredProvider,
     });
 
     const qc = await this.qcService.evaluate(generation.content, retrieved);

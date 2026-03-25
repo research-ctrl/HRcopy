@@ -1,8 +1,14 @@
 import type { DocumentRecord } from "@/lib/domain/models/document";
+import type { ActorRef } from "@/lib/domain/types/common";
 import { getSupabaseClient } from "@/lib/database/supabase";
 import type { DocumentRepository } from "@/lib/repositories/interfaces/document-repository";
 
 function rowToRecord(row: Record<string, unknown>): DocumentRecord {
+  const approvedByStr = row.approved_by as string | null | undefined;
+  const approvedBy: ActorRef | undefined = approvedByStr
+    ? { id: approvedByStr, name: "Admin", role: "hr-admin" }
+    : undefined;
+
   return {
     id: row.id as string,
     title: row.title as string,
@@ -20,7 +26,7 @@ function rowToRecord(row: Record<string, unknown>): DocumentRecord {
     storagePath: row.storage_path as string | undefined,
     chunkCount: Number(row.chunk_count ?? 0),
     versionCount: Number(row.version_count ?? 0),
-    approvedBy: row.approved_by as string | undefined,
+    approvedBy,
     approvedAt: row.approved_at as string | undefined,
     lastProcessedAt: row.last_processed_at as string | undefined,
     effectiveDate: row.effective_date as string | undefined,

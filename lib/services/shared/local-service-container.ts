@@ -22,6 +22,8 @@ import { isSupabaseConfigured } from "@/lib/database/supabase";
 import { SupabaseConversationRepository } from "@/lib/repositories/supabase/conversation-repository";
 import { SupabaseDocumentRepository } from "@/lib/repositories/supabase/document-repository";
 import { SupabaseSettingsRepository } from "@/lib/repositories/supabase/settings-repository";
+import { SupabaseChunkRepository } from "@/lib/repositories/supabase/chunk-repository";
+import { SupabaseSourceRepository } from "@/lib/repositories/supabase/source-repository";
 import { LocalAnswerService } from "@/lib/services/answer-service";
 import { LocalDocumentIngestionService } from "@/lib/services/document-ingestion-service";
 import { LocalChatService } from "@/lib/services/local/local-chat-service";
@@ -40,10 +42,14 @@ export function createLocalContainer(root?: string) {
   const documentRepository = useSupabase
     ? new SupabaseDocumentRepository()
     : new LocalDocumentRepository(root);
-  // Use local for now until Supabase repos are fully implemented
+  // Use local for unimplemented repositories; Supabase for critical ones
   const documentVersionRepository = new LocalDocumentVersionRepository(root);
-  const chunkRepository = new LocalChunkRepository(root);
-  const sourceRepository = new LocalSourceRepository(root);
+  const chunkRepository = useSupabase
+    ? new SupabaseChunkRepository()
+    : new LocalChunkRepository(root);
+  const sourceRepository = useSupabase
+    ? new SupabaseSourceRepository()
+    : new LocalSourceRepository(root);
   const reviewRepository = new LocalReviewRepository(root);
   const monitoringRunRepository = new LocalMonitoringRunRepository(root);
   const conversationRepository = useSupabase
